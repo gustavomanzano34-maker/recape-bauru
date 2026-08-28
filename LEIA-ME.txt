@@ -1,0 +1,88 @@
+╔══════════════════════════════════════════════════════════════╗
+║   PAINEL DE OBRAS — RECAPE BAURU                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+O QUE É
+--------
+Um site com o mapa real de Bauru onde cada rua da obra aparece
+colorida pelo status. Passe o mouse para ver um resumo rápido e
+clique para ver todos os dados (área, valores, %, datas).
+
+Cores das ruas:
+  • CINZA    = Não iniciada
+  • AMARELO  = Em andamento
+  • VERDE    = Finalizada
+
+
+COMO ABRIR (no seu Mac)
+------------------------
+1. Dê 2 cliques no arquivo  "Abrir Site.command"
+2. O site abre sozinho no navegador.
+3. Deixe a janela preta aberta enquanto usa. Para fechar o site,
+   feche essa janela.
+
+  (Na 1ª vez o Mac pode pedir permissão: clique com o botão direito
+   em "Abrir Site.command" > Abrir > Abrir. Depois é só 2 cliques.)
+
+
+COMO ATUALIZAR OS DADOS (você mesmo)
+-------------------------------------
+Toda a informação vem da planilha  "Ruas de Bauru.xlsx"  que está
+NESTA MESMA PASTA. Para atualizar:
+
+1. Abra a planilha "Ruas de Bauru.xlsx".
+2. Preencha as colunas AMARELAS (aba PLAN):
+      Status  →  Não iniciada / Em andamento / Finalizada
+      Data Início, Data Fim
+      Área (m²)
+      Valor Estimado (R$)
+      % Concluído
+   As colunas CINZA (Valor Medido / Valor a Medir) são calculadas
+   sozinhas. Veja a aba "COMO PREENCHER" dentro da planilha.
+3. Salve a planilha (mesmo nome, mesma pasta).
+4. No site, clique no botão  "↻ Atualizar"  (canto superior direito).
+   Pronto — o mapa e os números refletem os novos dados.
+
+Você pode adicionar novas colunas à direita sem quebrar nada.
+NÃO renomeie as colunas nem a aba "PLAN".
+
+
+ADICIONAR RUAS QUE FALTAM NO MAPA
+----------------------------------
+Se uma rua está na planilha mas NÃO aparece desenhada no mapa,
+é porque ela não existe no arquivo de traçados (KMZ). Para incluir:
+
+1. Abra o Google My Maps (mymaps.google.com) ou o Google Earth.
+2. Importe o "RECAPE PM BAURU.kmz", desenhe a linha da rua nova
+   e dê a ela o MESMO nome que está na planilha.
+3. Exporte de volta como KMZ (mesmo nome) e salve na pasta BAURU.
+4. Dê 2 cliques em  "Atualizar Mapa.command"  — o traçado do site
+   é regenerado sozinho. Depois clique em "↻ Atualizar" no site.
+
+(Se o nome no KMZ ficar diferente do da planilha, me avise que eu
+ crio um "apelido" — foi o que fiz com MARIO GRILO x MARIO GIRILO.)
+
+
+PUBLICAR ONLINE (link para divulgar)
+-------------------------------------
+Esta pasta inteira já é um site pronto. Para pôr no ar de graça:
+
+Opção fácil (arrastar e soltar):
+  1. Acesse  https://app.netlify.com/drop
+  2. Arraste a pasta "Site Recape Bauru" para a página.
+  3. Você recebe um link público na hora. Pronto para divulgar.
+
+Para atualizar o site publicado depois de mexer na planilha,
+basta arrastar a pasta de novo (ou usar o painel do Netlify).
+
+Obs.: o mapa usa a internet para carregar as imagens do mapa,
+então é preciso estar conectado — tanto local quanto online.
+
+
+ARQUIVOS DESTA PASTA
+---------------------
+  index.html            → o site
+  Ruas de Bauru.xlsx     → a planilha (sua fonte de dados)
+  geodata.js             → traçado das ruas no mapa (não precisa mexer)
+  dados_snapshot.js      → cópia de segurança dos dados
+  Abrir Site.command     → abre o site com 2 cliques
