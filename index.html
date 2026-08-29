@@ -107,9 +107,10 @@
 <script>
 const XLSX_FILE = "Ruas de Bauru.xlsx";
 const STATUS = {
-  nova:      {key:"nova",      label:"Não iniciada", color:"#9e9e9e"},
-  andamento: {key:"andamento", label:"Em andamento", color:"#f5b301"},
-  final:     {key:"final",     label:"Finalizada",   color:"#2e7d32"},
+  nova:       {key:"nova",       label:"Não iniciada",          color:"#9e9e9e"},
+  andamento:  {key:"andamento",  label:"Em andamento",          color:"#f5b301"},
+  final:      {key:"final",      label:"Finalizada",            color:"#2e7d32"},
+  paralisada: {key:"paralisada", label:"Paralisada / não será feita", color:"#c62828"},
 };
 const BRL = v => (v==null||v==="")?"—":"R$ "+Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const NUM = v => (v==null||v==="")?"—":Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -137,9 +138,16 @@ function streetname(name){
   }
   return out.join(" ").trim() || n;
 }
+// extrai o trecho da via (ex: "QT 01 A 03") para diferenciar pedaços da mesma rua
+function qtOf(name){
+  const n=norm(name);
+  const m=n.match(/\bQT\b.*$/);
+  return m ? m[0].trim() : "";
+}
 function statusOf(raw){
   const s=norm(raw);
   if(!s) return "nova";
+  if(s.includes("PARALIS")||s.includes("NAO SERA")||s.includes("CANCELAD")||s.includes("SUSPENS")) return "paralisada";
   if(s.includes("NAO INIC")||s.includes("A INICIAR")||s.includes("PENDENTE")) return "nova";
   if(s.includes("FINALIZ")||s.includes("CONCLU")||s.includes("ENCERRAD")) return "final";
   if(s.includes("ANDAMENTO")||s.includes("EXECU")||s.includes("INICIAD")||s.includes("EM OBRA")) return "andamento";
@@ -166,9 +174,10 @@ lg.addTo(map);
 // ALIAS xlsx->kml
 const ALIAS=GEO.alias||{};
 let RUAS=[];            // dados unificados
+let LABELS={medido:"Valor medido", aMedir:"Valor a medir"}; // rótulos = cabeçalho real da planilha
 let layerIndex={};      // item -> {layers:[]}
 let selItem=null;
-let filt={status:{nova:true,andamento:true,final:true}, bairro:"", q:""};
+let filt={status:{nova:true,andamento:true,final:true,paralisada:true}, bairro:"", q:""};
 
 function colorFor(item){ return STATUS[item.status].color; }
 
@@ -227,8 +236,8 @@ function selectRua(r,fromMap){
       <div class="kv"><span>Término</span><b>${r.fim||"—"}</b></div>
       <div class="kv"><span>Área</span><b>${r.area?NUM(r.area)+" m²":"—"}</b></div>
       <div class="kv"><span>Valor estimado</span><b>${BRL(est)}</b></div>
-      <div class="kv"><span>Valor medido</span><b>${BRL(med)}</b></div>
-      <div class="kv"><span>Valor a medir</span><b>${BRL(ame)}</b></div>
+      <div class="kv"><span>${LABELS.medido}</span><b>${BRL(med)}</b></div>
+      <div class="kv"><span>${LABELS.aMedir}</span><b>${BRL(ame)}</b></div>
       ${r.geo?"":'<div class="kv"><span></span><b style="color:#b26a00">⚠ Sem traçado no mapa</b></div>'}
     </div>`;
   if(fromMap && r.geo){ map.panTo(r.geo.center); }
@@ -275,7 +284,7 @@ function applyFilter(){
 
 // ---- resumo ----
 function renderStats(){
-  const c={nova:0,andamento:0,final:0};
+  const c={nova:0,andamento:0,final:0,paralisada:0};
   let area=0,est=0,med=0,ame=0;
   RUAS.forEach(r=>{c[r.status]++; area+=r.area||0; est+=r.estimado||0; med+=r.medido||0; ame+=r.aMedir||0;});
   const pctGeral = est>0 ? med/est : 0;
@@ -284,9 +293,10 @@ function renderStats(){
     <div class="stat"><b style="color:#ffd7d7">${c.nova}</b><span>Não inic.</span></div>
     <div class="stat"><b style="color:#ffe9a8">${c.andamento}</b><span>Andamento</span></div>
     <div class="stat"><b style="color:#bff0c0">${c.final}</b><span>Finaliz.</span></div>
+    <div class="stat"><b style="color:#ffc7c7">${c.paralisada}</b><span>Paralisada</span></div>
     <div class="stat"><b>${Math.round(pctGeral*100)}%</b><span>Medido/Est.</span></div>`;
   document.getElementById("subttl").innerHTML=
-    `Área total: ${area?NUM(area)+" m²":"—"} · Estimado: ${BRL(est)} · Medido: ${BRL(med)} · A medir: ${BRL(ame)}`;
+    `Área total: ${area?NUM(area)+" m²":"—"} · Estimado: ${BRL(est)} · ${LABELS.medido}: ${BRL(med)} · ${LABELS.aMedir}: ${BRL(ame)}`;
 }
 
 // ---- construção dos dados a partir das linhas da planilha ----
@@ -303,6 +313,10 @@ function buildFromRows(rows){
     medir:find("MEDIR"), medido:-1
   };
   idx.medido = H.findIndex(h=>h.includes("MEDIDO"));
+  if(idx.medido<0) idx.medido = H.findIndex(h=>h.includes("VALOR") && !h.includes("ESTIMAD") && !h.includes("MEDIR"));
+  if(idx.medir<0) idx.medir = H.findIndex(h=>h.includes("SALDO"));
+  LABELS.medido = idx.medido>=0 ? String(rows[0][idx.medido]).trim() : "Valor medido";
+  LABELS.aMedir = idx.medir>=0 ? String(rows[0][idx.medir]).trim() : "Valor a medir";
   const g=(r,i)=> (i>=0 && i<r.length)? r[i] : null;
   const out=[];
   for(let i=1;i<rows.length;i++){
@@ -321,11 +335,45 @@ function buildFromRows(rows){
       status:statusOf(g(r,idx.status)),
       inicio:fmtDate(g(r,idx.inicio)), fim:fmtDate(g(r,idx.fim)),
       area:numOrNull(g(r,idx.area)), estimado:est, medido:med, aMedir:ame,
-      pct:pct||0, geo:GEO.geo[sk]||null
+      pct:pct||0, sk, geo:null
     };
     out.push(rec);
   }
+  assignGeo(out);
   return out;
+}
+// quando várias linhas da planilha caem na mesma rua (ex: trechos/quadras
+// diferentes), tenta dar a cada linha só o pedaço do traçado que é dela,
+// casando pelo texto da quadra ("QT ..."). Se não der pra separar com
+// segurança, todas ficam com o traçado inteiro (comportamento antigo).
+function assignGeo(list){
+  const bySk={};
+  list.forEach(r=>{ (bySk[r.sk]=bySk[r.sk]||[]).push(r); });
+  Object.keys(bySk).forEach(sk=>{
+    const group=bySk[sk], base=GEO.geo[sk];
+    if(!base) return;
+    if(group.length===1){ group[0].geo=base; return; }
+    const segs=base.segments, names=base.kml_names||[];
+    const claimed=new Array(segs.length).fill(false);
+    let allMatched=true;
+    group.forEach(r=>{
+      const q=qtOf(r.via); r._idx=[];
+      if(q) names.forEach((nm,i)=>{ if(!claimed[i] && qtOf(nm)===q){ r._idx.push(i); claimed[i]=true; } });
+      if(r._idx.length===0) allMatched=false;
+    });
+    if(allMatched && claimed.every(Boolean)){
+      group.forEach(r=>{
+        const mySegs=r._idx.map(i=>segs[i]);
+        const allp=mySegs.flat();
+        const lat=allp.reduce((s,p)=>s+p[0],0)/allp.length;
+        const lon=allp.reduce((s,p)=>s+p[1],0)/allp.length;
+        r.geo={segments:mySegs, kml_names:r._idx.map(i=>names[i]), center:[lat,lon]};
+      });
+    } else {
+      group.forEach(r=>{ r.geo=base; });
+    }
+    group.forEach(r=>delete r._idx);
+  });
 }
 function numOrNull(v){ if(v==null||v==="")return null; const n=Number(v); return isNaN(n)?null:n; }
 function fmtDate(v){
